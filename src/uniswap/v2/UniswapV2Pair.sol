@@ -9,7 +9,7 @@ import {Math} from "src/libraries/Math.sol";
 import {SafeCast} from "src/libraries/SafeCast.sol";
 import {UQ112x112} from "src/libraries/UQ112x112.sol";
 import {Currency} from "src/types/Currency.sol";
-import {ITUniswapV2Factory} from "./UniswapV2Factory.sol";
+import {IUniswapV2PairDeployer} from "./UniswapV2Factory.sol";
 import {UniswapV2ERC20} from "./UniswapV2ERC20.sol";
 
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
@@ -271,6 +271,10 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 		Lock.unlock();
 	}
 
+	constructor() {
+		factory = msg.sender;
+	}
+
 	function price0CumulativeLast() external view returns (uint256) {
 		return _price0CumulativeLast;
 	}
@@ -462,7 +466,6 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 
 contract CUniswapV2Pair is UniswapV2PairImmutable {
 	constructor(Currency _token0, Currency _token1) {
-		factory = msg.sender;
 		token0 = _token0;
 		token1 = _token1;
 	}
@@ -470,9 +473,8 @@ contract CUniswapV2Pair is UniswapV2PairImmutable {
 
 contract TUniswapV2Pair is UniswapV2PairImmutable {
 	constructor() {
-		(Currency currency0, Currency currency1) = ITUniswapV2Factory(msg.sender).pairContext();
+		(Currency currency0, Currency currency1) = IUniswapV2PairDeployer(msg.sender).parameters();
 
-		factory = msg.sender;
 		token0 = currency0;
 		token1 = currency1;
 	}
