@@ -31,6 +31,36 @@ library Math {
 		}
 	}
 
+	function mod(uint256 x, uint256 y) internal pure returns (uint256 z) {
+		assembly ("memory-safe") {
+			z := mod(x, y)
+		}
+	}
+
+	function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+		unchecked {
+			z = x + y;
+		}
+	}
+
+	function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+		unchecked {
+			z = x - y;
+		}
+	}
+
+	function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+		unchecked {
+			z = x * y;
+		}
+	}
+
+	function div(uint256 x, uint256 y) internal pure returns (uint256 z) {
+		assembly ("memory-safe") {
+			z := div(x, y)
+		}
+	}
+
 	function divRoundingUp(uint256 x, uint256 y) internal pure returns (uint256 z) {
 		assembly ("memory-safe") {
 			z := add(div(x, y), gt(mod(x, y), 0))

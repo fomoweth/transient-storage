@@ -7,6 +7,36 @@ pragma solidity ^0.8.25;
 library PoolActions {
 	// V3
 
+	function swap(
+		address pool,
+		address recipient,
+		bool zeroForOne,
+		int256 amountSpecified,
+		uint160 sqrtPriceLimitX96,
+		bytes calldata data
+	) internal returns (int256 amount0Delta, int256 amount1Delta) {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x128acb0800000000000000000000000000000000000000000000000000000000)
+			mstore(add(ptr, 0x04), recipient)
+			mstore(add(ptr, 0x24), zeroForOne)
+			mstore(add(ptr, 0x44), amountSpecified)
+			mstore(add(ptr, 0x64), sqrtPriceLimitX96)
+			mstore(add(ptr, 0x84), 0xa0)
+			mstore(add(ptr, 0xa4), data.length)
+			calldatacopy(add(ptr, 0xc4), data.offset, data.length)
+
+			if iszero(call(gas(), pool, 0x00, ptr, add(0xc4, data.length), 0x00, 0x40)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			amount0Delta := mload(0x00)
+			amount1Delta := mload(0x20)
+		}
+	}
+
 	function mint(
 		address pool,
 		address recipient,
@@ -97,36 +127,6 @@ library PoolActions {
 		}
 	}
 
-	function swap(
-		address pool,
-		address recipient,
-		bool zeroForOne,
-		int256 amountSpecified,
-		uint160 sqrtPriceLimitX96,
-		bytes calldata data
-	) internal returns (int256 amount0Delta, int256 amount1Delta) {
-		assembly ("memory-safe") {
-			let ptr := mload(0x40)
-
-			mstore(ptr, 0x128acb0800000000000000000000000000000000000000000000000000000000)
-			mstore(add(ptr, 0x04), recipient)
-			mstore(add(ptr, 0x24), zeroForOne)
-			mstore(add(ptr, 0x44), amountSpecified)
-			mstore(add(ptr, 0x64), sqrtPriceLimitX96)
-			mstore(add(ptr, 0x84), 0xa0)
-			mstore(add(ptr, 0xa4), data.length)
-			calldatacopy(add(ptr, 0xc4), data.offset, data.length)
-
-			if iszero(call(gas(), pool, 0x00, ptr, add(0xc4, data.length), 0x00, 0x40)) {
-				returndatacopy(ptr, 0x00, returndatasize())
-				revert(ptr, returndatasize())
-			}
-
-			amount0Delta := mload(0x00)
-			amount1Delta := mload(0x20)
-		}
-	}
-
 	function flash(address pool, address recipient, uint256 amount0, uint256 amount1, bytes calldata data) internal {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
@@ -147,6 +147,50 @@ library PoolActions {
 	}
 
 	// V2
+
+	function swap(address pair, address recipient, bool zeroForOne, uint256 amountOut, bytes calldata data) internal {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x022c0d9f00000000000000000000000000000000000000000000000000000000)
+			mstore(add(ptr, 0x04), mul(amountOut, iszero(zeroForOne)))
+			mstore(add(ptr, 0x24), mul(amountOut, iszero(iszero(zeroForOne))))
+			mstore(add(ptr, 0x44), recipient)
+			mstore(add(ptr, 0x64), 0x80)
+			mstore(add(ptr, 0x84), data.length)
+			calldatacopy(add(ptr, 0xa4), data.offset, data.length)
+
+			if iszero(call(gas(), pair, 0x00, ptr, add(0xa4, data.length), 0x00, 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+		}
+	}
+
+	function swap(
+		address pair,
+		uint256 amount0Out,
+		uint256 amount1Out,
+		address recipient,
+		bytes calldata data
+	) internal {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0x022c0d9f00000000000000000000000000000000000000000000000000000000)
+			mstore(add(ptr, 0x04), amount0Out)
+			mstore(add(ptr, 0x24), amount1Out)
+			mstore(add(ptr, 0x44), recipient)
+			mstore(add(ptr, 0x64), 0x80)
+			mstore(add(ptr, 0x84), data.length)
+			calldatacopy(add(ptr, 0xa4), data.offset, data.length)
+
+			if iszero(call(gas(), pair, 0x00, ptr, add(0xa4, data.length), 0x00, 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+		}
+	}
 
 	function mint(address pair, address recipient) internal returns (uint256 liquidity) {
 		assembly ("memory-safe") {
@@ -181,25 +225,27 @@ library PoolActions {
 		}
 	}
 
-	function swap(
-		address pair,
-		uint256 amount0Out,
-		uint256 amount1Out,
-		address recipient,
-		bytes calldata data
-	) internal {
+	function skim(address pair, address recipient) internal {
 		assembly ("memory-safe") {
 			let ptr := mload(0x40)
 
-			mstore(ptr, 0x022c0d9f00000000000000000000000000000000000000000000000000000000)
-			mstore(add(ptr, 0x04), amount0Out)
-			mstore(add(ptr, 0x24), amount1Out)
-			mstore(add(ptr, 0x44), recipient)
-			mstore(add(ptr, 0x64), 0x80)
-			mstore(add(ptr, 0x84), data.length)
-			calldatacopy(add(ptr, 0xa4), data.offset, data.length)
+			mstore(ptr, 0xbc25cf7700000000000000000000000000000000000000000000000000000000)
+			mstore(add(ptr, 0x04), recipient)
 
-			if iszero(call(gas(), pair, 0x00, ptr, add(0xa4, data.length), 0x00, 0x00)) {
+			if iszero(call(gas(), pair, 0x00, ptr, 0x24, 0x00, 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+		}
+	}
+
+	function sync(address pair) internal {
+		assembly ("memory-safe") {
+			let ptr := mload(0x40)
+
+			mstore(ptr, 0xfff6cae900000000000000000000000000000000000000000000000000000000)
+
+			if iszero(call(gas(), pair, 0x00, ptr, 0x04, 0x00, 0x00)) {
 				returndatacopy(ptr, 0x00, returndatasize())
 				revert(ptr, returndatasize())
 			}
