@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import {Currency} from "src/types/Currency.sol";
+
 interface IUniswapV3Pool {
 	// IUniswapV3PoolEvents
 
@@ -100,9 +102,9 @@ interface IUniswapV3Pool {
 
 	function factory() external view returns (address);
 
-	function token0() external view returns (address);
+	function token0() external view returns (Currency);
 
-	function token1() external view returns (address);
+	function token1() external view returns (Currency);
 
 	function fee() external view returns (uint24);
 

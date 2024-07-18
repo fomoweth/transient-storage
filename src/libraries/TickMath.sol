@@ -6,11 +6,8 @@ pragma solidity ^0.8.25;
 /// @dev Implementation from https://github.com/Uniswap/v3-core/blob/0.8/contracts/libraries/TickMath.sol
 
 library TickMath {
-	error InvalidTick();
-	error InvalidRatio();
-
 	int24 internal constant MIN_TICK = -887272;
-	int24 internal constant MAX_TICK = 887272;
+	int24 internal constant MAX_TICK = -MIN_TICK;
 
 	uint160 internal constant MIN_SQRT_RATIO = 4295128739;
 	uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
@@ -18,7 +15,7 @@ library TickMath {
 	function getSqrtRatioAtTick(int24 tick) internal pure returns (uint160 sqrtRatioX96) {
 		unchecked {
 			uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
-			if (absTick > uint256(int256(MAX_TICK))) revert InvalidTick();
+			require(absTick <= uint256(int256(MAX_TICK)));
 
 			uint256 ratio = absTick & 0x1 != 0
 				? 0xfffcb933bd6fad37aa2d162d1a594001
@@ -51,7 +48,7 @@ library TickMath {
 
 	function getTickAtSqrtRatio(uint160 sqrtRatioX96) internal pure returns (int24 tick) {
 		unchecked {
-			if (!(sqrtRatioX96 >= MIN_SQRT_RATIO && sqrtRatioX96 < MAX_SQRT_RATIO)) revert InvalidRatio();
+			require(sqrtRatioX96 >= MIN_SQRT_RATIO && sqrtRatioX96 < MAX_SQRT_RATIO);
 			uint256 ratio = uint256(sqrtRatioX96) << 32;
 
 			uint256 r = ratio;

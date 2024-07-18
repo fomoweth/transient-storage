@@ -44,36 +44,6 @@ library SignedMath {
 		}
 	}
 
-	function mod(int256 x, int256 y) internal pure returns (int256 z) {
-		assembly ("memory-safe") {
-			z := smod(x, y)
-		}
-	}
-
-	function add(int256 x, int256 y) internal pure returns (int256 z) {
-		unchecked {
-			z = x + y;
-		}
-	}
-
-	function sub(int256 x, int256 y) internal pure returns (int256 z) {
-		unchecked {
-			z = x - y;
-		}
-	}
-
-	function mul(int256 x, int256 y) internal pure returns (int256 z) {
-		unchecked {
-			z = x * y;
-		}
-	}
-
-	function div(int256 x, int256 y) internal pure returns (int256 z) {
-		assembly ("memory-safe") {
-			z := sdiv(x, y)
-		}
-	}
-
 	function wadMul(int256 x, int256 y) internal pure returns (int256 z) {
 		assembly ("memory-safe") {
 			z := mul(x, y)
