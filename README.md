@@ -2,7 +2,7 @@
 
 Use cases of Transient Storage
 
-#### Constructing Uniswap V3 Pool
+### Constructing Uniswap V3 Pool
 
 ##### [UniswapV3Pool.sol](https://github.com/Uniswap/v3-core/blob/6562c52e8f75f0c10f9deaf44861847585fc8129/contracts/UniswapV3Pool.sol#L113)
 
@@ -162,15 +162,15 @@ contract UniswapV3PoolDeployer {
 }
 ```
 
-#### Constructing Uniswap V2 Pair
+### Constructing Uniswap V2 Pair
 
 ##### [UniswapV2Pair.sol](https://github.com/Uniswap/v2-core/blob/ee547b17853e71ed4e0101ccfd52e70d5acded58/contracts/UniswapV2Pair.sol#L61)
 
 ```solidity
 contract UniswapV2Pair {
 	address public factory;
-    address public token0;
-    address public token1;
+	address public token0;
+	address public token1;
 
 	constructor() {
 		factory = msg.sender;
@@ -189,8 +189,8 @@ The Uniswap V2 `factory` and `pair` contracts can also be optimized similar to V
 ```solidity
 contract UniswapV2Pair {
 	address public immutable factory;
-    address public immutable token0;
-    address public immutable token1;
+	address public immutable token0;
+	address public immutable token1;
 
 	constructor() {
 		factory = msg.sender;
