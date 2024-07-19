@@ -12,15 +12,15 @@ import {Currency} from "src/types/Currency.sol";
 import {IUniswapV2PairDeployer} from "./UniswapV2Factory.sol";
 import {UniswapV2ERC20} from "./UniswapV2ERC20.sol";
 
-contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+contract UniswapV2PairInitializer is IUniswapV2Pair, UniswapV2ERC20 {
 	using SafeCast for uint256;
 	using UQ112x112 for uint224;
 
 	uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
 
-	address public factory;
-	Currency public token0;
-	Currency public token1;
+	address private _factory;
+	Currency private _token0;
+	Currency private _token1;
 
 	uint112 private _reserve0;
 	uint112 private _reserve1;
@@ -37,19 +37,19 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 	}
 
 	constructor() {
-		factory = msg.sender;
+		_factory = msg.sender;
 	}
 
-	function price0CumulativeLast() external view returns (uint256) {
-		return _price0CumulativeLast;
+	function factory() public view returns (address) {
+		return _factory;
 	}
 
-	function price1CumulativeLast() external view returns (uint256) {
-		return _price1CumulativeLast;
+	function token0() public view returns (Currency) {
+		return _token0;
 	}
 
-	function kLast() external view returns (uint256) {
-		return _kLast;
+	function token1() public view returns (Currency) {
+		return _token1;
 	}
 
 	function getReserves() public view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) {
@@ -58,17 +58,29 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 		blockTimestampLast = _blockTimestampLast;
 	}
 
+	function price0CumulativeLast() public view returns (uint256) {
+		return _price0CumulativeLast;
+	}
+
+	function price1CumulativeLast() public view returns (uint256) {
+		return _price1CumulativeLast;
+	}
+
+	function kLast() public view returns (uint256) {
+		return _kLast;
+	}
+
 	function initialize(Currency currency0, Currency currency1) external {
-		if (msg.sender != factory) revert Forbidden();
-		token0 = currency0;
-		token1 = currency1;
+		if (msg.sender != factory()) revert Forbidden();
+		_token0 = currency0;
+		_token1 = currency1;
 	}
 
 	function mint(address recipient) external lock returns (uint256 liquidity) {
 		(uint112 reserve0, uint112 reserve1, ) = getReserves();
 
-		uint256 balance0 = _balance(token0);
-		uint256 balance1 = _balance(token1);
+		uint256 balance0 = _balance(token0());
+		uint256 balance1 = _balance(token1());
 
 		uint256 amount0;
 		uint256 amount1;
@@ -101,8 +113,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 	function burn(address recipient) external lock returns (uint256 amount0, uint256 amount1) {
 		(uint112 reserve0, uint112 reserve1, ) = getReserves();
 
-		Currency currency0 = token0;
-		Currency currency1 = token1;
+		Currency currency0 = token0();
+		Currency currency1 = token1();
 
 		uint256 balance0 = _balance(currency0);
 		uint256 balance1 = _balance(currency1);
@@ -143,8 +155,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 		uint256 balance1;
 
 		{
-			Currency currency0 = token0;
-			Currency currency1 = token1;
+			Currency currency0 = token0();
+			Currency currency1 = token1();
 
 			if (recipient == Currency.unwrap(currency0) || recipient == Currency.unwrap(currency1)) {
 				revert InvalidRecipient();
@@ -184,19 +196,19 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 	}
 
 	function skim(address recipient) external lock {
-		Currency currency0 = token0;
-		Currency currency1 = token1;
+		Currency currency0 = token0();
+		Currency currency1 = token1();
 
 		_transfer(currency0, recipient, _balance(currency0) - _reserve0);
 		_transfer(currency1, recipient, _balance(currency1) - _reserve1);
 	}
 
 	function sync() external lock {
-		_update(_balance(token0), _balance(token1), _reserve0, _reserve1);
+		_update(_balance(token0()), _balance(token1()), _reserve0, _reserve1);
 	}
 
 	function _mintFee(uint112 reserve0, uint112 reserve1) private returns (bool feeOn) {
-		address feeTo = IUniswapV2Factory(factory).feeTo();
+		address feeTo = IUniswapV2Factory(factory()).feeTo();
 
 		uint256 kLast_ = _kLast;
 
@@ -238,11 +250,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 		emit Sync(reserve0, reserve1);
 	}
 
-	function _transfer(Currency currency, address recipient, uint256 value) internal {
+	function _transfer(Currency currency, address recipient, uint256 value) private {
 		currency.transfer(recipient, value);
 	}
 
-	function _balance(Currency currency) internal view returns (uint256) {
+	function _balance(Currency currency) private view returns (uint256) {
 		return currency.balanceOfSelf();
 	}
 }
@@ -275,22 +287,22 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 		factory = msg.sender;
 	}
 
-	function price0CumulativeLast() external view returns (uint256) {
-		return _price0CumulativeLast;
-	}
-
-	function price1CumulativeLast() external view returns (uint256) {
-		return _price1CumulativeLast;
-	}
-
-	function kLast() external view returns (uint256) {
-		return _kLast;
-	}
-
-	function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) {
+	function getReserves() public view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) {
 		reserve0 = _reserve0;
 		reserve1 = _reserve1;
 		blockTimestampLast = _blockTimestampLast;
+	}
+
+	function price0CumulativeLast() public view returns (uint256) {
+		return _price0CumulativeLast;
+	}
+
+	function price1CumulativeLast() public view returns (uint256) {
+		return _price1CumulativeLast;
+	}
+
+	function kLast() public view returns (uint256) {
+		return _kLast;
 	}
 
 	function initialize(Currency, Currency) external virtual {
@@ -335,23 +347,29 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 	function burn(address recipient) external lock returns (uint256 amount0, uint256 amount1) {
 		uint112 reserve0 = _reserve0;
 		uint112 reserve1 = _reserve1;
+
+		uint256 balance0 = _balance0();
+		uint256 balance1 = _balance1();
 		uint256 liquidity = balanceOf(address(this));
 
 		bool feeOn = _mintFee(reserve0, reserve1);
 		uint256 totalSupply = totalSupply();
 
 		if (
-			(amount0 = (liquidity * _balance0()) / totalSupply) == 0 ||
-			(amount1 = (liquidity * _balance1()) / totalSupply) == 0
+			(amount0 = (liquidity * balance0) / totalSupply) == 0 ||
+			(amount1 = (liquidity * balance1) / totalSupply) == 0
 		) {
 			revert InsufficientLiquidityBurned();
 		}
 
 		_burn(address(this), liquidity);
-		token0.transfer(recipient, amount0);
-		token1.transfer(recipient, amount1);
+		_transfer0(recipient, amount0);
+		_transfer1(recipient, amount1);
 
-		_update(_balance0(), _balance1(), reserve0, reserve1);
+		balance0 = _balance0();
+		balance1 = _balance1();
+
+		_update(balance0, balance1, reserve0, reserve1);
 		if (feeOn) _kLast = reserve0 * reserve1;
 
 		emit Burn(msg.sender, amount0, amount1, recipient);
@@ -370,8 +388,8 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 				revert InvalidRecipient();
 			}
 
-			if (amount0Out != 0) token0.transfer(recipient, amount0Out);
-			if (amount1Out != 0) token1.transfer(recipient, amount1Out);
+			if (amount0Out != 0) _transfer0(recipient, amount0Out);
+			if (amount1Out != 0) _transfer1(recipient, amount1Out);
 			if (data.length != 0) IUniswapV2Callee(recipient).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
 		}
 
@@ -404,8 +422,8 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 	}
 
 	function skim(address recipient) external lock {
-		token0.transfer(recipient, _balance0() - _reserve0);
-		token1.transfer(recipient, _balance1() - _reserve1);
+		_transfer0(recipient, _balance0() - _reserve0);
+		_transfer1(recipient, _balance1() - _reserve1);
 	}
 
 	function sync() external lock {
@@ -455,23 +473,31 @@ abstract contract UniswapV2PairImmutable is IUniswapV2Pair, UniswapV2ERC20 {
 		emit Sync(reserve0, reserve1);
 	}
 
-	function _balance0() internal view returns (uint256) {
+	function _transfer0(address recipient, uint256 value) private {
+		token0.transfer(recipient, value);
+	}
+
+	function _transfer1(address recipient, uint256 value) private {
+		token1.transfer(recipient, value);
+	}
+
+	function _balance0() private view returns (uint256) {
 		return token0.balanceOfSelf();
 	}
 
-	function _balance1() internal view returns (uint256) {
+	function _balance1() private view returns (uint256) {
 		return token1.balanceOfSelf();
 	}
 }
 
-contract CUniswapV2Pair is UniswapV2PairImmutable {
-	constructor(Currency _token0, Currency _token1) {
-		token0 = _token0;
-		token1 = _token1;
+contract UniswapV2PairConstructor is UniswapV2PairImmutable {
+	constructor(Currency currency0, Currency currency1) {
+		token0 = currency0;
+		token1 = currency1;
 	}
 }
 
-contract TUniswapV2Pair is UniswapV2PairImmutable {
+contract UniswapV2PairTransient is UniswapV2PairImmutable {
 	constructor() {
 		(Currency currency0, Currency currency1) = IUniswapV2PairDeployer(msg.sender).parameters();
 

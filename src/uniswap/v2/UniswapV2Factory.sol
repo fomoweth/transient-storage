@@ -4,33 +4,41 @@ pragma solidity ^0.8.25;
 import {IUniswapV2Factory} from "src/interfaces/v2/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "src/interfaces/v2/IUniswapV2Pair.sol";
 import {Currency} from "src/types/Currency.sol";
-import {UniswapV2Pair, CUniswapV2Pair, TUniswapV2Pair} from "./UniswapV2Pair.sol";
+import {UniswapV2PairInitializer, UniswapV2PairConstructor, UniswapV2PairTransient} from "src/uniswap/v2/UniswapV2Pair.sol";
 
-contract UniswapV2Factory is IUniswapV2Factory {
+abstract contract UniswapV2Factory is IUniswapV2Factory {
 	error Forbidden();
 	error PairExistsAlready();
 	error IdenticalCurrencies();
 	error InvalidCurrency();
 
-	address public feeTo;
-	address public feeToSetter;
+	address private _feeTo;
+	address private _feeToSetter;
 
 	mapping(Currency currencyA => mapping(Currency currencyB => address pair)) private _pairs;
 	address[] private _allPairs;
 
-	constructor(address _feeToSetter) {
-		feeToSetter = _feeToSetter;
+	constructor(address feeToSetter_) {
+		_feeToSetter = feeToSetter_;
 	}
 
-	function getPair(Currency currencyA, Currency currencyB) external view returns (address) {
+	function feeTo() public view returns (address) {
+		return _feeTo;
+	}
+
+	function feeToSetter() public view returns (address) {
+		return _feeToSetter;
+	}
+
+	function getPair(Currency currencyA, Currency currencyB) public view returns (address) {
 		return _pairs[currencyA][currencyB];
 	}
 
-	function allPairs(uint256 index) external view returns (address) {
+	function allPairs(uint256 index) public view returns (address) {
 		return _allPairs[index];
 	}
 
-	function allPairsLength() external view returns (uint256) {
+	function allPairsLength() public view returns (uint256) {
 		return _allPairs.length;
 	}
 
@@ -41,7 +49,7 @@ contract UniswapV2Factory is IUniswapV2Factory {
 
 		if (currency0 == currency1) revert IdenticalCurrencies();
 		if (currency0.isZero()) revert InvalidCurrency();
-		if (_pairs[currency0][currency1] != address(0)) revert PairExistsAlready();
+		if (getPair(currency0, currency1) != address(0)) revert PairExistsAlready();
 
 		pair = _createPair(currency0, currency1);
 
@@ -49,11 +57,27 @@ contract UniswapV2Factory is IUniswapV2Factory {
 		_pairs[currency1][currency0] = pair;
 		_allPairs.push(pair);
 
-		emit PairCreated(currency0, currency1, pair, _allPairs.length);
+		emit PairCreated(currency0, currency1, pair, allPairsLength());
 	}
 
-	function _createPair(Currency currency0, Currency currency1) internal virtual returns (address pair) {
-		bytes memory bytecode = type(UniswapV2Pair).creationCode;
+	function _createPair(Currency currency0, Currency currency1) internal virtual returns (address pair);
+
+	function setFeeTo(address account) external {
+		if (msg.sender != feeToSetter()) revert Forbidden();
+		_feeTo = account;
+	}
+
+	function setFeeToSetter(address account) external {
+		if (msg.sender != feeToSetter()) revert Forbidden();
+		_feeToSetter = account;
+	}
+}
+
+contract UniswapV2FactoryInitializer is UniswapV2Factory {
+	constructor(address _feeToSetter) UniswapV2Factory(_feeToSetter) {}
+
+	function _createPair(Currency currency0, Currency currency1) internal virtual override returns (address pair) {
+		bytes memory bytecode = type(UniswapV2PairInitializer).creationCode;
 
 		bytes32 salt = keccak256(abi.encodePacked(currency0, currency1));
 
@@ -68,23 +92,16 @@ contract UniswapV2Factory is IUniswapV2Factory {
 
 		IUniswapV2Pair(pair).initialize(currency0, currency1);
 	}
-
-	function setFeeTo(address _feeTo) external {
-		if (msg.sender != feeToSetter) revert Forbidden();
-		feeTo = _feeTo;
-	}
-
-	function setFeeToSetter(address _feeToSetter) external {
-		if (msg.sender != feeToSetter) revert Forbidden();
-		feeToSetter = _feeToSetter;
-	}
 }
 
-contract CUniswapV2Factory is UniswapV2Factory {
+contract UniswapV2FactoryConstructor is UniswapV2Factory {
 	constructor(address _feeToSetter) UniswapV2Factory(_feeToSetter) {}
 
 	function _createPair(Currency currency0, Currency currency1) internal virtual override returns (address pair) {
-		bytes memory bytecode = abi.encodePacked(type(CUniswapV2Pair).creationCode, abi.encode(currency0, currency1));
+		bytes memory bytecode = abi.encodePacked(
+			type(UniswapV2PairConstructor).creationCode,
+			abi.encode(currency0, currency1)
+		);
 
 		bytes32 salt = keccak256(abi.encodePacked(currency0, currency1));
 
@@ -103,7 +120,7 @@ interface IUniswapV2PairDeployer {
 	function parameters() external view returns (Currency currency0, Currency currency1);
 }
 
-contract TUniswapV2Factory is IUniswapV2PairDeployer, UniswapV2Factory {
+contract UniswapV2FactoryTransient is IUniswapV2PairDeployer, UniswapV2Factory {
 	// bytes32(uint256(keccak256("UniswapV2Factory.pairContext.slot")) - 1) & ~bytes32(uint256(0xff))
 	bytes32 private constant PAIR_CONTEXT_SLOT = 0x7795f0288f84ebc3248ba2ece8a261d88f3c68aa04c040b6eed48a2eafe53400;
 
@@ -122,7 +139,7 @@ contract TUniswapV2Factory is IUniswapV2PairDeployer, UniswapV2Factory {
 	}
 
 	function _createPair(Currency currency0, Currency currency1) internal virtual override returns (address pair) {
-		bytes memory bytecode = type(TUniswapV2Pair).creationCode;
+		bytes memory bytecode = type(UniswapV2PairTransient).creationCode;
 
 		bytes32 salt = keccak256(abi.encodePacked(currency0, currency1));
 
