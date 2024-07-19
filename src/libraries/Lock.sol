@@ -25,23 +25,6 @@ library Lock {
 		}
 	}
 
-	function lock(bytes32 slot) internal {
-		assembly ("memory-safe") {
-			if iszero(iszero(tload(slot))) {
-				mstore(0x00, 0x0f2e5b6c) // Locked()
-				revert(0x1c, 0x04)
-			}
-
-			tstore(slot, 0x01)
-		}
-	}
-
-	function unlock(bytes32 slot) internal {
-		assembly ("memory-safe") {
-			tstore(slot, 0x00)
-		}
-	}
-
 	function isLocked() internal view returns (bool locked) {
 		assembly ("memory-safe") {
 			locked := iszero(iszero(tload(LOCKED_SLOT)))
