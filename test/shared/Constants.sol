@@ -11,4 +11,9 @@ abstract contract Constants {
 		0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
 
 	address constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+
+	uint24 constant FEE_LOWEST = 100;
+	uint24 constant FEE_LOW = 500;
+	uint24 constant FEE_MEDIUM = 3000;
+	uint24 constant FEE_HIGH = 10000;
 }
