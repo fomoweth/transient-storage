@@ -159,9 +159,9 @@ contract UniswapV3FactoryTransient is IUniswapV3PoolDeployer, UniswapV3Factory {
 			}
 
 			tstore(POOL_CONTEXT_SLOT, currency0)
-			tstore(add(POOL_CONTEXT_SLOT, 0x01), currency1)
-			tstore(add(POOL_CONTEXT_SLOT, 0x02), fee)
-			tstore(add(POOL_CONTEXT_SLOT, 0x03), tickSpacing)
+			tstore(add(POOL_CONTEXT_SLOT, 0x20), currency1)
+			tstore(add(POOL_CONTEXT_SLOT, 0x40), fee)
+			tstore(add(POOL_CONTEXT_SLOT, 0x60), tickSpacing)
 
 			pool := create2(0x00, add(bytecode, 0x20), mload(bytecode), salt)
 
@@ -171,9 +171,9 @@ contract UniswapV3FactoryTransient is IUniswapV3PoolDeployer, UniswapV3Factory {
 			}
 
 			tstore(POOL_CONTEXT_SLOT, 0x00)
-			tstore(add(POOL_CONTEXT_SLOT, 0x01), 0x00)
-			tstore(add(POOL_CONTEXT_SLOT, 0x02), 0x00)
-			tstore(add(POOL_CONTEXT_SLOT, 0x03), 0x00)
+			tstore(add(POOL_CONTEXT_SLOT, 0x20), 0x00)
+			tstore(add(POOL_CONTEXT_SLOT, 0x40), 0x00)
+			tstore(add(POOL_CONTEXT_SLOT, 0x60), 0x00)
 		}
 	}
 
@@ -189,9 +189,9 @@ contract UniswapV3FactoryTransient is IUniswapV3PoolDeployer, UniswapV3Factory {
 			}
 
 			currency0 := tload(POOL_CONTEXT_SLOT)
-			currency1 := tload(add(POOL_CONTEXT_SLOT, 0x01))
-			fee := tload(add(POOL_CONTEXT_SLOT, 0x02))
-			tickSpacing := tload(add(POOL_CONTEXT_SLOT, 0x03))
+			currency1 := tload(add(POOL_CONTEXT_SLOT, 0x20))
+			fee := tload(add(POOL_CONTEXT_SLOT, 0x40))
+			tickSpacing := tload(add(POOL_CONTEXT_SLOT, 0x60))
 		}
 	}
 }
